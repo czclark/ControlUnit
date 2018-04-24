@@ -3,19 +3,19 @@ module ControlUnit(instruction, status, reset, clock, control_word/*, literal*/)
 	input [31:0] instruction;
 							  // registerd   , instant
 	input [4:0] status; // {V, C, N, Z}, Z
-	input reset, clock;
+	input reset, clock;	
+	parameter CW_BITS = 96;
 	output [CW_BITS:0] control_word;
 	//output [63:0] literal;
 	
-	parameter CW_BITS = 96;
 	
 	wire [10:0] opcode;
 	assign opcode = instruction[31:21];
 	
 	// partial control words
-	wire [32:0] branch_cw, other_cw;
-	wire [32:0] D_format_cw, I_arithmetic_cw, I_logic_cw, IW_cw, R_ALU_cw;
-	wire [32:0] B_cw, B_cond_cw, BL_cw, CBZ_cw, BR_cw;
+	wire [96:0] branch_cw, other_cw;
+	wire [96:0] D_format_cw, I_arithmetic_cw, I_logic_cw, IW_cw, R_ALU_cw;
+	wire [96:0] B_cw, B_cond_cw, BL_cw, CBZ_cw, BR_cw;
 	
 	// state logic
 	wire NS;
@@ -66,10 +66,10 @@ module D_decoder (I, control_word);
 	wire C0;
 	
 	assign C0 = 1'b0;
-	assign DA = I[4:0];
+	assign DA = I[4:0]; 	
 	assign SA = I[9:5];
-	assign SB = 5'b0;
-	assign K = I[31] ? {55'b0, I[20:12]} : {I[20],3'b0,I[19],3'b0,I[18],3'b0,I[17],3'b0,I[16],3'b0,I[15],
+	assign SB = I[4:0];
+	assign K = I[31] ? {55'b0, I[20:12]} : {28'b0,I[20],3'b0,I[19],3'b0,I[18],3'b0,I[17],3'b0,I[16],3'b0,I[15],
 	                                        3'b0,I[14],3'b0,I[13],3'b0,I[12],3'b0};
 	assign PS = 2'b01;
 	assign FS = 5'b01000; 
@@ -80,7 +80,7 @@ module D_decoder (I, control_word);
 	assign NS = 1'b0;
 	
 	assign EN_ALU = 1'b0;
-   assign EN_RAM = I[22] ? 1'b1 : 1'b0;
+   assign EN_RAM = I[22] ? 1'b1 : 1'b0;	
 	assign EN_B = I[22] ? 1'b0 : 1'b1;
    assign WM = I[22] ? 1'b0 : 1'b1;
    assign WR = I[22] ? 1'b1 : 1'b0;	
@@ -268,7 +268,7 @@ module B_decoder (I, control_word);
 	assign K[25:0] = I[25:0];
 	assign EN_PC = 1'b0;
 	assign PCsel = 1'b1;
-	assign PS = 2'b10;
+	assign PS = 2'b11;
 	
 	
 	assign control_word = {SA, SB, DA, WR, WM, FS, C0, EN_RAM, EN_ALU, PCsel, Bsel, PS, EN_PC, EN_B, SL, NS,K};
@@ -301,7 +301,7 @@ module B_cond_decoder (I, status, control_word);
 	assign NS = 1'b0;
 	
 	assign FS = 5'b0;
-	assign K = {{45{I[25]}},I[25:5]};
+	assign K = {{43{I[25]}},I[25:5]};
 	assign EN_PC = 1'b0;
 	assign PCsel = 1'b1;
 	
@@ -339,7 +339,7 @@ module BL_decoder (I, control_word);
 	assign K = {{38{I[25]}},I[25:0]};
 	assign EN_PC = 1'b1;
 	assign PCsel = 1'b1;
-	assign PS = 2'b10;
+	assign PS = 2'b11;
 	
 	assign control_word = {SA, SB, DA, WR, WM, FS, C0, EN_RAM, EN_ALU, PCsel, Bsel, PS, EN_PC, EN_B, SL, NS,K};
 endmodule
@@ -371,7 +371,7 @@ module CBZ_decoder (I, status,control_word);
 	assign SA = 5'b11111;
 	assign FS = 5'b01000;
 	assign SB = I[4:0];
-	assign K = {{45{I[25]}},I[25:5]};
+	assign K = {{45{I[25]}},I[23:5]};
 	assign EN_PC = 1'b0;
 	assign PCsel = 1'b1;
 	assign PS = (I[24] ? (status == 1'b0) : (status == 1'b1)) ? 2'b11 : 2'b01;
